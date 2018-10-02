@@ -4,8 +4,14 @@ namespace LanguageWorkerRussian_Test
 {
 	public class LanguageWorker_Russian_Original : LanguageWorker
 	{
+		protected LanguageWorker_Russian_Original()
+		{
+			//Log.Message("LanguageWorker_Russian_Original is created");
+		}
+
 		public override string PostProcessed(string str)
 		{
+			Log.MessageFormat("PostProcessed: \"{1}\"", str);
 			str = base.PostProcessed(str).ProcessTimeSpan().ProcessDate();
 			return str;
 		}
