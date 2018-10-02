@@ -7,19 +7,19 @@ namespace LanguageWorkerRussian_Test
 {
 	public class LanguageWorker_Russian_Modified : LanguageWorker
 	{
-		protected LanguageWorker_Russian_Modified()
+		public LanguageWorker_Russian_Modified()
 		{
 			Log.Message("LanguageWorker_Russian_Modified is created");
 		}
 
 		public override string PostProcessedKeyedTranslation(string translation)
 		{
-			Log.MessageFormat("PostProcessedKeyedTranslation: \"{1}\"", translation);
-			translation = translation
-			  //.ProcessTimeSpan()
+			Log.MessageFormat("PostProcessedKeyedTranslation: \"{0}\"", translation);
+			translation = base.PostProcessedKeyedTranslation(translation)
+			  .ProcessTimeSpan()
 			  .ProcessDate();
 
-			Log.MessageFormat("PostProcessedKeyedTranslation: \"{1}\"", translation);
+			Log.MessageFormat("PostProcessedKeyedTranslation: \"{0}\"", translation);
 
 			return translation;
 		}

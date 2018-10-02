@@ -4,16 +4,23 @@ namespace LanguageWorkerRussian_Test
 {
 	public class LanguageWorker_Russian_Original : LanguageWorker
 	{
-		protected LanguageWorker_Russian_Original()
+		public LanguageWorker_Russian_Original()
 		{
-			//Log.Message("LanguageWorker_Russian_Original is created");
+			Log.Message("LanguageWorker_Russian_Original is created");
 		}
 
 		public override string PostProcessed(string str)
 		{
-			Log.MessageFormat("PostProcessed: \"{1}\"", str);
+			Log.MessageFormat("PostProcessed: \"{0}\"", str);
 			str = base.PostProcessed(str).ProcessTimeSpan().ProcessDate();
 			return str;
+		}
+
+		public override string PostProcessedKeyedTranslation(string translation)
+		{
+			Log.MessageFormat("PostProcessedKeyedTranslation: \"{0}\"", translation);
+			translation = base.PostProcessedKeyedTranslation(translation);
+			return translation;
 		}
 
 		public override string OrdinalNumber(int number, Gender gender = Gender.None)
