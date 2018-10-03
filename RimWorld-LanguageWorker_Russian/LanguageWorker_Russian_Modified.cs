@@ -7,6 +7,8 @@ namespace LanguageWorkerRussian_Test
 {
 	public class LanguageWorker_Russian_Modified : LanguageWorker
 	{
+		const string LanguageWorkerMarker = "$";
+
 		public LanguageWorker_Russian_Modified()
 		{
 			Log.Message("LanguageWorker_Russian_Modified is created");
@@ -14,6 +16,13 @@ namespace LanguageWorkerRussian_Test
 
 		public override string PostProcessedKeyedTranslation(string translation)
 		{
+			translation = base.PostProcessedKeyedTranslation(translation);
+
+			if (!translation.Contains(LanguageWorkerMarker))
+				return translation;
+
+
+
 			Log.MessageFormat("PostProcessedKeyedTranslation: \"{0}\"", translation);
 			translation = base.PostProcessedKeyedTranslation(translation)
 			  .ProcessTimeSpan()
