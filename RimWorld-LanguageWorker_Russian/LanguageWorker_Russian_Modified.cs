@@ -21,16 +21,14 @@ namespace LanguageWorkerRussian_Test
 			if (!translation.Contains(LanguageWorkerMarker))
 				return translation;
 
+			string newTranslation = translation
+                .Replace(LanguageWorkerMarker, string.Empty)
+                .ProcessTimeSpan()
+                .ProcessDate();
 
+			Log.MessageFormat("PostProcessedKeyedTranslation:\r\n OLD: \"{0}\"\r\n NEW: \"{1}\"", translation, newTranslation);
 
-			Log.MessageFormat("PostProcessedKeyedTranslation: \"{0}\"", translation);
-			translation = base.PostProcessedKeyedTranslation(translation)
-			  .ProcessTimeSpan()
-			  .ProcessDate();
-
-			Log.MessageFormat("PostProcessedKeyedTranslation: \"{0}\"", translation);
-
-			return translation;
+			return newTranslation;
 		}
 
 		public override string PostProcessed(string str)

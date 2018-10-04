@@ -5,13 +5,6 @@ namespace LanguageWorkerRussian_Test
 {
     internal static class Log
     {
-        private const string Path = @"E:\Projects\Rimworld translation\testLog.txt";
-
-        static Log()
-        {
-            File.WriteAllText(Path, "Log init" + Environment.NewLine);
-        }
-
         /// <summary>
         /// Replaces the format item in a specified string with the string representation of a corresponding object in a specified array.
         /// </summary>
@@ -29,7 +22,7 @@ namespace LanguageWorkerRussian_Test
 
         public static void Message(string message)
         {
-            File.AppendAllText(Path, message + Environment.NewLine);
+            Verse.Log.Message(message);
         }
     }
 }

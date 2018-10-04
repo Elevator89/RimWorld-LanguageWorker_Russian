@@ -47,10 +47,10 @@ namespace LanguageWorkerRussian_Test
 		public static string ProcessDate(this string str)
 		{
 			return str
-				.Replace("-й мартомай", " мартомая")
-				.Replace("-й июгуст", " июгуста")
-				.Replace("-й сентоноябрь", " сентоноября")
-				.Replace("-й декавраль", " декавраля");
+				.Replace("-е мартомай", "-е мартомая")
+				.Replace("-е июгуст", "-е июгуста")
+				.Replace("-е сентоноябрь", "-е сентоноября")
+				.Replace("-е декавраль", "-е декавраля");
 		}
 
 		public static string ReplaceAtIndex(this string str, int index, int length, char replacement)
