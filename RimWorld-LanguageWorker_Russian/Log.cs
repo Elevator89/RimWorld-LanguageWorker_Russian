@@ -1,6 +1,3 @@
-using System;
-using System.IO;
-
 namespace LanguageWorkerRussian_Test
 {
     internal static class Log
@@ -17,12 +14,18 @@ namespace LanguageWorkerRussian_Test
         /// <exception cref="T:System.ArgumentNullException"><paramref name="format"/> or <paramref name="args"/> is null. </exception><exception cref="T:System.FormatException"><paramref name="format"/> is invalid.-or- The index of a format item is less than zero, or greater than or equal to the length of the <paramref name="args"/> array. </exception><filterpriority>1</filterpriority>
         public static void MessageFormat(string format, params object[] args)
         {
-            Message(string.Format(format, args));
+            Verse.Log.Message(string.Format(format, args));
         }
 
-        public static void Message(string message)
+        public static void WarningFormat(string format, params object[] args)
         {
-            Verse.Log.Message(message);
+            Verse.Log.Warning(string.Format(format, args));
         }
+
+        public static void ErrorFormat(string format, params object[] args)
+        {
+            Verse.Log.Error(string.Format(format, args));
+        }
+
     }
 }

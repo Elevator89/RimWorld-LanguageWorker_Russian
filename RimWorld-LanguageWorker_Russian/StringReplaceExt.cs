@@ -2,86 +2,92 @@
 
 namespace LanguageWorkerRussian_Test
 {
-	internal static class StringReplaceExt
-	{
-		public static string ProcessTimeSpan(this string str)
-		{
-			return str
-				.ReplaceAtStartSpaceOrNewline("1 лет", "1 год")
-				.ReplaceAtStartSpaceOrNewline("1 кварталов", "1 квартал")
-				.ReplaceAtStartSpaceOrNewline("1 дней", "1 день")
-				.ReplaceAtStartSpaceOrNewline("1 часов", "1 час")
-				.ReplaceRegex("([02-9])1 лет", "${1}1 год")
-				.ReplaceRegex("([02-9])1 кварталов", "${1}1 квартал")
-				.ReplaceRegex("([02-9])1 дней", "${1}1 день")
-				.ReplaceRegex("([02-9])1 часов", "${1}1 час")
+    internal static class StringReplaceExt
+    {
+        private static readonly Regex numYears = new Regex("[0-9]+ лет", RegexOptions.Compiled);
+        private static readonly Regex numQuadrums = new Regex("[0-9]+ кварталов", RegexOptions.Compiled);
+        private static readonly Regex numDays = new Regex("[0-9]+ дней", RegexOptions.Compiled);
+        private static readonly Regex numTimes = new Regex("[0-9]+ раз", RegexOptions.Compiled);
 
-				.ReplaceAtStartSpaceOrNewline("2 лет", "2 года")
-				.ReplaceAtStartSpaceOrNewline("2 кварталов", "2 квартала")
-				.ReplaceAtStartSpaceOrNewline("2 дней", "2 дня")
-				.ReplaceAtStartSpaceOrNewline("2 часов", "2 часа")
-				.ReplaceRegex("([02-9])2 лет", "${1}2 года")
-				.ReplaceRegex("([02-9])2 кварталов", "${1}2 квартала")
-				.ReplaceRegex("([02-9])2 дней", "${1}2 дня")
-				.ReplaceRegex("([02-9])2 часов", "${1}2 часа")
+        public static string ProcessTimeSpan(this string str)
+        {
+            MatchCollection matches = numYears.Matches(str);
 
-				.ReplaceAtStartSpaceOrNewline("3 лет", "3 года")
-				.ReplaceAtStartSpaceOrNewline("3 кварталов", "3 квартала")
-				.ReplaceAtStartSpaceOrNewline("3 дней", "3 дня")
-				.ReplaceAtStartSpaceOrNewline("3 часов", "3 часа")
-				.ReplaceRegex("([02-9])3 лет", "${1}3 года")
-				.ReplaceRegex("([02-9])3 кварталов", "${1}3 квартала")
-				.ReplaceRegex("([02-9])3 дней", "${1}3 дня")
-				.ReplaceRegex("([02-9])3 часов", "${1}3 часа")
+            str = numYears.Replace(str, (match) => EvaluateCasedItem(match, "лет", "год", "года"));
+            str = numQuadrums.Replace(str, (match) => EvaluateCasedItem(match, "кварталов", "квартал", "квартала"));
+            str = numDays.Replace(str, (match) => EvaluateCasedItem(match, "дней", "день", "дня"));
+            str = numTimes.Replace(str, (match) => EvaluateCasedItem(match, "раз", "раз", "раза"));
 
-				.ReplaceAtStartSpaceOrNewline("4 лет", "4 года")
-				.ReplaceAtStartSpaceOrNewline("4 кварталов", "4 квартала")
-				.ReplaceAtStartSpaceOrNewline("4 дней", "4 дня")
-				.ReplaceAtStartSpaceOrNewline("4 часов", "4 часа")
-				.ReplaceRegex("([02-9])4 лет", "${1}4 года")
-				.ReplaceRegex("([02-9])4 кварталов", "${1}4 квартала")
-				.ReplaceRegex("([02-9])4 дней", "${1}4 дня")
-				.ReplaceRegex("([02-9])4 часов", "${1}4 часа");
-		}
+            return str;
+        }
 
-		public static string ProcessDate(this string str)
-		{
-			return str
-				.Replace("-е мартомай", "-е мартомая")
-				.Replace("-е июгуст", "-е июгуста")
-				.Replace("-е сентоноябрь", "-е сентоноября")
-				.Replace("-е декавраль", "-е декавраля");
-		}
+        private static string EvaluateCasedItem(Match match, string caseDefault, string case1, string case2)
+        {
+            int number;
+            if (!TryParseNumber(match, out number))
+            {
+                Log.WarningFormat("{0} doesn't have a number", match.Value);
+                return match.Value;
+            }
 
-		public static string ReplaceAtIndex(this string str, int index, int length, char replacement)
-		{
-			return str.ReplaceAtIndex(index, length, replacement.ToString());
-		}
+            return match.Value.Replace(caseDefault, GetCasedItem(number, caseDefault, case1, case2));
+        }
 
-		public static string ReplaceAtIndex(this string str, int index, int length, string replacement)
-		{
-			return str.Remove(index, length).Insert(index, replacement);
-		}
+        private static bool TryParseNumber(Match match, out int number)
+        {
+            number = int.MinValue;
 
-		public static string ReplaceRegex(this string str, string pattern, string replaceWith)
-		{
-			return Regex.Replace(str, pattern, replaceWith);
-		}
+            if (match.Groups.Count <= 1)
+                return false;
 
-		public static string ReplaceAtStartSpaceOrNewline(this string str, string toReplace, string replaceWith)
-		{
-			if (!str.Contains(toReplace))
-				return str;
+            string intStr = match.Groups[1].Value;
+            return int.TryParse(intStr, out number);
+        }
 
-			str = str
-				.Replace(' ' + toReplace, ' ' + replaceWith)
-				.Replace('\n' + toReplace, '\n' + replaceWith);
+        private static string GetCasedItem(int number, string caseDefault, string case1, string case2)
+        {
+            switch (GetNumberCase(number))
+            {
+                case 1:
+                    return case1;
+                case 2:
+                    return case2;
+                default:
+                    return caseDefault;
+            }
+        }
 
-			if (str.StartsWith(toReplace))
-				str = replaceWith + str.Substring(toReplace.Length);
+        private static int GetNumberCase(int number)
+        {
+            int firstPos = number % 10;
+            int secondPos = number / 10 % 10;
 
-			return str;
-		}
-	}
+            if (secondPos == 1)
+            {
+                return 0;
+            }
+
+            switch (firstPos)
+            {
+                case 1:
+                    return 1;
+                case 2:
+                case 3:
+                case 4:
+                    return 2;
+                default:
+                    return 0;
+            }
+        }
+
+        public static string ProcessDate(this string str)
+        {
+            return str
+                .Replace("Мартомай", "Мартомая")
+                .Replace("Июгуст", "Июгуста")
+                .Replace("Сентоноябрь", "Сентоноября")
+                .Replace("Декавраль", "Декавраля");
+        }
+    }
 
 }
