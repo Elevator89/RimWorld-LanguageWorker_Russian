@@ -5,7 +5,7 @@ using Verse;
 
 namespace LanguageWorkerRussian_Test
 {
-    public class LanguageWorker_Russian_Modified : LanguageWorker
+    public class LanguageWorker_Russian : LanguageWorker
     {
         private static readonly Regex _languageWorkerTagRegex = new Regex(@"\$(.*?)\$", RegexOptions.Compiled);
 
