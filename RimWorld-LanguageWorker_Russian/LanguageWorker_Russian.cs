@@ -26,8 +26,6 @@ namespace LanguageWorkerRussian_Test
 
             foreach (string tag in tags)
             {
-                Verse.Log.Message(string.Format("Tag={0}", tag));
-
                 switch (tag)
                 {
                     case "date":
@@ -53,13 +51,10 @@ namespace LanguageWorkerRussian_Test
                         translation = _passedDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "Прошло", "Прошёл", "Прошло"));
                         break;
                     default:
-                        Log.Warning(string.Format("unexpected tag: {0}", tag));
+                        Log.Warning(string.Format("Unexpected LanguageWorker_Russian tag: {0}", tag));
                         break;
                 }
             }
-
-            if (tags.Count > 0)
-                Log.Message(string.Format("PostProcessedKeyedTranslation:\r\n OLD: \"{0}\"\r\n NEW: \"{1}\"", oldTranslation, translation));
 
             return translation;
         }
