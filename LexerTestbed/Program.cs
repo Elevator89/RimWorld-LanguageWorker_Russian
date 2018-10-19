@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using LanguageWorkerRussian_Test;
 
 namespace LexerTestbed
 {
@@ -6,22 +8,36 @@ namespace LexerTestbed
 	{
 		static void Main(string[] args)
 		{
-			Lexer lexer = new Lexer();
+            string filenameInput = args[0];
 
-			while (true)
-			{
-				Console.Write("Enter line: ");
-				string input = Console.ReadLine();
+            LanguageWorker_Russian lw = new LanguageWorker_Russian();
 
-				foreach(Lexem lexem in lexer.Parse(input))
-				{
-					Console.WriteLine("{0}: \"{1}\"", lexem.LexemType, lexem.StrValue);
-				}
-				Console.WriteLine();
+            string text = File.ReadAllText(filenameInput);
+		    string[] inputLines = text.Split(new [] { "\n\n\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string line in inputLines)
+            {
+                Console.WriteLine(lw.PostProcessedKeyedTranslation(line));
+            }
 
-				if (string.IsNullOrWhiteSpace(input))
-					return;
-			}
-		}
-	}
+            Console.WriteLine("Press ENTER to finish");
+            Console.ReadLine();
+
+            //Lexer lexer = new Lexer();
+
+            //while (true)
+            //{
+            //	Console.Write("Enter line: ");
+            //	string input = Console.ReadLine();
+
+            //	foreach(Lexem lexem in lexer.Parse(input))
+            //	{
+            //		Console.WriteLine("{0}: \"{1}\"", lexem.LexemType, lexem.StrValue);
+            //	}
+            //	Console.WriteLine();
+
+            //	if (string.IsNullOrWhiteSpace(input))
+            //		return;
+            //}
+        }
+    }
 }

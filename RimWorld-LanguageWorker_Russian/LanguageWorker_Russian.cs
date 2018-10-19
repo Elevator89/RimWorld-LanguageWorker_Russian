@@ -7,7 +7,7 @@ namespace LanguageWorkerRussian_Test
 {
     public class LanguageWorker_Russian : LanguageWorker
     {
-        private static readonly Regex _languageWorkerTagRegex = new Regex(@"\$(.*?)\$", RegexOptions.Compiled);
+        private static readonly Regex _languageWorkerTagRegex = new Regex("\\^(.*?)\\^", RegexOptions.Compiled);
 
         private static readonly Regex _numYearsRegex = new Regex("([0-9]+) лет", RegexOptions.Compiled);
         private static readonly Regex _numQuadrumsRegex = new Regex("([0-9]+) кварталов", RegexOptions.Compiled);
@@ -19,8 +19,17 @@ namespace LanguageWorkerRussian_Test
         public override string PostProcessedKeyedTranslation(string translation)
         {
             translation = base.PostProcessedKeyedTranslation(translation);
-            string oldTranslation = translation;
+            return PostProcess(translation);
+        }
 
+        public override string PostProcessed(string str)
+        {
+            str = base.PostProcessed(str);
+            return PostProcess(str);
+        }
+
+        private string PostProcess(string translation)
+        {
             List<string> tags = new List<string>();
             translation = _languageWorkerTagRegex.Replace(translation, (match) => EvaluateTags(match, tags));
 
