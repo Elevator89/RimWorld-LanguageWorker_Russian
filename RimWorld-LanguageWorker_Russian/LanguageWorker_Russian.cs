@@ -1,275 +1,355 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Verse;
 
 namespace LanguageWorkerRussian_Test
 {
-    public class LanguageWorker_Russian : LanguageWorker
-    {
-        private static readonly Regex _languageWorkerTagRegex = new Regex("\\^(.*?)\\^", RegexOptions.Compiled);
+	public class LanguageWorker_Russian : LanguageWorker
+	{
+		private interface IInstruction
+		{
+			string Execute(string arguments);
+		}
 
-        private static readonly Regex _numYearsRegex = new Regex("([0-9]+) лет", RegexOptions.Compiled);
-        private static readonly Regex _numQuadrumsRegex = new Regex("([0-9]+) кварталов", RegexOptions.Compiled);
-        private static readonly Regex _numDaysRegex = new Regex("([0-9]+) дней", RegexOptions.Compiled);
-        private static readonly Regex _numTimesRegex = new Regex("([0-9]+) раз", RegexOptions.Compiled);
+		private class ReplaceInstruction : IInstruction
+		{
+			// ^Replace "{0}": "Мартомай"-"Мартомая", "Июгуст"-"Июгуста", "Сентоноябрь"-"Сентоноября", "Декавраль"-"Декавраля"^
+			private static readonly Regex _replacementArgumentsLineRegex = new Regex("^\"(?<input>[^\"]*?)\":\\s*(\"(?<old>[^\"]*?)\"-\"(?<new>[^\"]*?)\")(,\\s*\"(?<old>[^\"]*?)\"-\"(?<new>[^\"]*?)\")*$", RegexOptions.Compiled);
 
-        private static readonly Regex _passedDaysRegex = new Regex("Прошло ([0-9]+)", RegexOptions.Compiled);
+			public string Execute(string argumentsLine)
+			{
+				Match match = _replacementArgumentsLineRegex.Match(argumentsLine);
+				if (!match.Success)
+				{
+					Log.Error(string.Format("Syntax error in LW arguments line: \"{0}\"", argumentsLine));
+					return string.Empty;
+				}
 
-        public override string PostProcessedKeyedTranslation(string translation)
-        {
-            translation = base.PostProcessedKeyedTranslation(translation);
-            return PostProcess(translation);
-        }
+				string input = match.Groups["input"].Value;
 
-        public override string PostProcessed(string str)
-        {
-            str = base.PostProcessed(str);
-            return PostProcess(str);
-        }
+				Group oldGroup = match.Groups["old"];
+				Group newGroup = match.Groups["new"];
 
-        private string PostProcess(string translation)
-        {
-            List<string> tags = new List<string>();
-            translation = _languageWorkerTagRegex.Replace(translation, (match) => EvaluateTags(match, tags));
+				if(oldGroup.Captures.Count != newGroup.Captures.Count)
+				{
+					Log.Error(string.Format("Syntax error in LW arguments line: \"{0}\"", argumentsLine));
+					return input;
+				}
 
-            foreach (string tag in tags)
-            {
-                switch (tag)
-                {
-                    case "date":
-                        translation = translation
-                            .Replace("Мартомай", "Мартомая")
-                            .Replace("Июгуст", "Июгуста")
-                            .Replace("Сентоноябрь", "Сентоноября")
-                            .Replace("Декавраль", "Декавраля");
-                        break;
-                    case "XItems1":
-                        translation = _numYearsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "лет", "год", "года"));
-                        translation = _numQuadrumsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "кварталов", "квартал", "квартала"));
-                        translation = _numDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "дней", "день", "дня"));
-                        translation = _numTimesRegex.Replace(translation, (match) => EvaluateCasedItem(match, "раз", "раз", "раза"));
-                        break;
-                    case "XItems2":
-                        translation = _numYearsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "лет", "года", "лет"));
-                        translation = _numQuadrumsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "кварталов", "квартала", "кварталов"));
-                        translation = _numDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "дней", "дня", "дней"));
-                        translation = _numTimesRegex.Replace(translation, (match) => EvaluateCasedItem(match, "раз", "раза", "раз"));
-                        break;
-                    case "passed":
-                        translation = _passedDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "Прошло", "Прошёл", "Прошло"));
-                        break;
-                    default:
-                        Log.Warning(string.Format("Unexpected LanguageWorker_Russian tag: {0}", tag));
-                        break;
-                }
-            }
+				for(int i = 0; i < oldGroup.Captures.Count; ++i)
+				{
+					input = input.Replace(oldGroup.Captures[i].Value, newGroup.Captures[i].Value);
+				}
 
-            return translation;
-        }
+				return input;
+			}
+		}
 
-        public override string Pluralize(string str, Gender gender, int count = -1)
-        {
-            if (str.NullOrEmpty())
-            {
-                return str;
-            }
-            char c = str[str.Length - 1];
-            char c2 = (str.Length < 2) ? '\0' : str[str.Length - 2];
-            if (gender != Gender.Male)
-            {
-                if (gender != Gender.Female)
-                {
-                    if (gender == Gender.None)
-                    {
-                        if (c == 'o')
-                        {
-                            return str.Substring(0, str.Length - 1) + 'a';
-                        }
-                        if (c == 'O')
-                        {
-                            return str.Substring(0, str.Length - 1) + 'A';
-                        }
-                        if (c == 'e' || c == 'E')
-                        {
-                            char value = char.ToUpper(c2);
-                            if ("ГКХЖЧШЩЦ".IndexOf(value) >= 0)
-                            {
-                                if (c == 'e')
-                                {
-                                    return str.Substring(0, str.Length - 1) + 'a';
-                                }
-                                if (c == 'E')
-                                {
-                                    return str.Substring(0, str.Length - 1) + 'A';
-                                }
-                            }
-                            else
-                            {
-                                if (c == 'e')
-                                {
-                                    return str.Substring(0, str.Length - 1) + 'я';
-                                }
-                                if (c == 'E')
-                                {
-                                    return str.Substring(0, str.Length - 1) + 'Я';
-                                }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    if (c == 'я')
-                    {
-                        return str.Substring(0, str.Length - 1) + 'и';
-                    }
-                    if (c == 'ь')
-                    {
-                        return str.Substring(0, str.Length - 1) + 'и';
-                    }
-                    if (c == 'Я')
-                    {
-                        return str.Substring(0, str.Length - 1) + 'И';
-                    }
-                    if (c == 'Ь')
-                    {
-                        return str.Substring(0, str.Length - 1) + 'И';
-                    }
-                    if (c == 'a' || c == 'A')
-                    {
-                        char value2 = char.ToUpper(c2);
-                        if ("ГКХЖЧШЩ".IndexOf(value2) >= 0)
-                        {
-                            if (c == 'a')
-                            {
-                                return str.Substring(0, str.Length - 1) + 'и';
-                            }
-                            return str.Substring(0, str.Length - 1) + 'И';
-                        }
-                        else
-                        {
-                            if (c == 'a')
-                            {
-                                return str.Substring(0, str.Length - 1) + 'ы';
-                            }
-                            return str.Substring(0, str.Length - 1) + 'Ы';
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (IsConsonant(c))
-                {
-                    return str + 'ы';
-                }
-                if (c == 'й')
-                {
-                    return str.Substring(0, str.Length - 1) + 'и';
-                }
-                if (c == 'ь')
-                {
-                    return str.Substring(0, str.Length - 1) + 'и';
-                }
-                if (c == 'Й')
-                {
-                    return str.Substring(0, str.Length - 1) + 'И';
-                }
-                if (c == 'Ь')
-                {
-                    return str.Substring(0, str.Length - 1) + 'И';
-                }
-            }
-            return str;
-        }
+		private class NumberCaseInstruction : IInstruction
+		{
+			// ^Replace "{0}": "Мартомай"-"Мартомая", "Июгуст"-"Июгуста", "Сентоноябрь"-"Сентоноября", "Декавраль"-"Декавраля"^
+			private static readonly Regex _numberCaseArgumentsLineRegex = new Regex("^\"(?<number>(?<floor>[0-9]+)(.(?<frac>[0-9]+)))?\":\\s*1-\"(?<one>[^\"]*?)\"\\s*2-\"(?<several>[^\"]*?)\"\\s*X-\"(?<many>[^\"]*?)\"$", RegexOptions.Compiled);
 
-        private static string EvaluateTags(Match match, List<string> tags)
-        {
-            if (match.Groups.Count <= 1)
-                return string.Empty;
+			public string Execute(string argumentsLine)
+			{
+				Match match = _numberCaseArgumentsLineRegex.Match(argumentsLine);
+				if (!match.Success)
+				{
+					Log.Error(string.Format("Syntax error in LW arguments line: \"{0}\"", argumentsLine));
+					return string.Empty;
+				}
 
-            string tagLine = match.Groups[1].Value;
+				bool hasTail = match.Groups["frac"].Success;
 
-            foreach (string tag in tagLine.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                tags.AddDistinct(tag);
-            }
-            return string.Empty;
-        }
 
-        private static string EvaluateCasedItem(Match match, string caseDefault, string case1, string case2)
-        {
-            int number;
-            if (!TryParseNumber(match, out number))
-            {
-                Log.Warning(string.Format("{0} doesn't have a number", match.Value));
-                return match.Value;
-            }
+				string number = match.Groups["number"].Value;
 
-            return match.Value.Replace(caseDefault, GetCasedItem(number, caseDefault, case1, case2));
-        }
+				Group oldGroup = match.Groups["old"];
+				Group newGroup = match.Groups["new"];
 
-        private static bool TryParseNumber(Match match, out int number)
-        {
-            number = int.MinValue;
+				throw new NotImplementedException();
+			}
+		}
 
-            if (match.Groups.Count <= 1)
-                return false;
+		private static readonly Regex _languageWorkerTagRegex = new Regex("\\^(.*?)\\^", RegexOptions.Compiled);
 
-            string intStr = match.Groups[1].Value;
-            return int.TryParse(intStr, out number);
-        }
+		private static readonly Regex _numYearsRegex = new Regex("([0-9]+) лет", RegexOptions.Compiled);
+		private static readonly Regex _numQuadrumsRegex = new Regex("([0-9]+) кварталов", RegexOptions.Compiled);
+		private static readonly Regex _numDaysRegex = new Regex("([0-9]+) дней", RegexOptions.Compiled);
+		private static readonly Regex _numTimesRegex = new Regex("([0-9]+) раз", RegexOptions.Compiled);
 
-        private static string GetCasedItem(int number, string caseDefault, string case1, string case2)
-        {
-            switch (GetNumberCase(number))
-            {
-                case 1:
-                    return case1;
-                case 2:
-                    return case2;
-                default:
-                    return caseDefault;
-            }
-        }
+		private static readonly Regex _passedDaysRegex = new Regex("Прошло ([0-9]+)", RegexOptions.Compiled);
 
-        private static int GetNumberCase(int number)
-        {
-            int firstPos = number % 10;
-            int secondPos = number / 10 % 10;
+		public override string PostProcessedKeyedTranslation(string translation)
+		{
+			translation = base.PostProcessedKeyedTranslation(translation);
+			return PostProcess(translation);
+		}
 
-            if (secondPos == 1)
-            {
-                return 0;
-            }
+		public override string PostProcessed(string str)
+		{
+			str = base.PostProcessed(str);
+			return PostProcess(str);
+		}
 
-            switch (firstPos)
-            {
-                case 1:
-                    return 1;
-                case 2:
-                case 3:
-                case 4:
-                    return 2;
-                default:
-                    return 0;
-            }
-        }
+		private string PostProcess(string translation)
+		{
+			List<string> tags = new List<string>();
+			translation = _languageWorkerTagRegex.Replace(translation, (match) => EvaluateTags(match, tags));
 
-        private static string ProcessDate(string str)
-        {
-            return str
-                .Replace("Мартомай", "Мартомая")
-                .Replace("Июгуст", "Июгуста")
-                .Replace("Сентоноябрь", "Сентоноября")
-                .Replace("Декавраль", "Декавраля");
-        }
+			foreach (string tag in tags)
+			{
+				switch (tag)
+				{
+					case "date":
+						translation = translation
+							.Replace("Мартомай", "Мартомая")
+							.Replace("Июгуст", "Июгуста")
+							.Replace("Сентоноябрь", "Сентоноября")
+							.Replace("Декавраль", "Декавраля");
+						break;
+					case "XItems1":
+						translation = _numYearsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "лет", "год", "года"));
+						translation = _numQuadrumsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "кварталов", "квартал", "квартала"));
+						translation = _numDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "дней", "день", "дня"));
+						translation = _numTimesRegex.Replace(translation, (match) => EvaluateCasedItem(match, "раз", "раз", "раза"));
+						break;
+					case "XItems2":
+						translation = _numYearsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "лет", "года", "лет"));
+						translation = _numQuadrumsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "кварталов", "квартала", "кварталов"));
+						translation = _numDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "дней", "дня", "дней"));
+						translation = _numTimesRegex.Replace(translation, (match) => EvaluateCasedItem(match, "раз", "раза", "раз"));
+						break;
+					case "passed":
+						translation = _passedDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "Прошло", "Прошёл", "Прошло"));
+						break;
+					default:
+						Log.Warning(string.Format("Unexpected LanguageWorker_Russian tag: {0}", tag));
+						break;
+				}
+			}
 
-        private static bool IsConsonant(char ch)
-        {
-            return "бвгджзклмнпрстфхцчшщБВГДЖЗКЛМНПРСТФХЦЧШЩ".IndexOf(ch) >= 0;
-        }
-    }
+			return translation;
+		}
+
+		public override string Pluralize(string str, Gender gender, int count = -1)
+		{
+			if (str.NullOrEmpty())
+			{
+				return str;
+			}
+			char c = str[str.Length - 1];
+			char c2 = (str.Length < 2) ? '\0' : str[str.Length - 2];
+			if (gender != Gender.Male)
+			{
+				if (gender != Gender.Female)
+				{
+					if (gender == Gender.None)
+					{
+						if (c == 'o')
+						{
+							return str.Substring(0, str.Length - 1) + 'a';
+						}
+						if (c == 'O')
+						{
+							return str.Substring(0, str.Length - 1) + 'A';
+						}
+						if (c == 'e' || c == 'E')
+						{
+							char value = char.ToUpper(c2);
+							if ("ГКХЖЧШЩЦ".IndexOf(value) >= 0)
+							{
+								if (c == 'e')
+								{
+									return str.Substring(0, str.Length - 1) + 'a';
+								}
+								if (c == 'E')
+								{
+									return str.Substring(0, str.Length - 1) + 'A';
+								}
+							}
+							else
+							{
+								if (c == 'e')
+								{
+									return str.Substring(0, str.Length - 1) + 'я';
+								}
+								if (c == 'E')
+								{
+									return str.Substring(0, str.Length - 1) + 'Я';
+								}
+							}
+						}
+					}
+				}
+				else
+				{
+					if (c == 'я')
+					{
+						return str.Substring(0, str.Length - 1) + 'и';
+					}
+					if (c == 'ь')
+					{
+						return str.Substring(0, str.Length - 1) + 'и';
+					}
+					if (c == 'Я')
+					{
+						return str.Substring(0, str.Length - 1) + 'И';
+					}
+					if (c == 'Ь')
+					{
+						return str.Substring(0, str.Length - 1) + 'И';
+					}
+					if (c == 'a' || c == 'A')
+					{
+						char value2 = char.ToUpper(c2);
+						if ("ГКХЖЧШЩ".IndexOf(value2) >= 0)
+						{
+							if (c == 'a')
+							{
+								return str.Substring(0, str.Length - 1) + 'и';
+							}
+							return str.Substring(0, str.Length - 1) + 'И';
+						}
+						else
+						{
+							if (c == 'a')
+							{
+								return str.Substring(0, str.Length - 1) + 'ы';
+							}
+							return str.Substring(0, str.Length - 1) + 'Ы';
+						}
+					}
+				}
+			}
+			else
+			{
+				if (IsConsonant(c))
+				{
+					return str + 'ы';
+				}
+				if (c == 'й')
+				{
+					return str.Substring(0, str.Length - 1) + 'и';
+				}
+				if (c == 'ь')
+				{
+					return str.Substring(0, str.Length - 1) + 'и';
+				}
+				if (c == 'Й')
+				{
+					return str.Substring(0, str.Length - 1) + 'И';
+				}
+				if (c == 'Ь')
+				{
+					return str.Substring(0, str.Length - 1) + 'И';
+				}
+			}
+			return str;
+		}
+
+		private static string EvaluateTags(Match match, List<string> tags)
+		{
+			if (match.Groups.Count <= 1)
+				return string.Empty;
+
+			string tagLine = match.Groups[1].Value;
+
+			foreach (string tag in tagLine.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+			{
+				tags.AddDistinct(tag);
+			}
+			return string.Empty;
+		}
+
+		private static string EvaluateInstruction(Match match, List<string> tags)
+		{
+			if (match.Groups.Count <= 1)
+				return string.Empty;
+
+			string instructionLine = match.Groups[1].Value;
+
+			foreach (string tag in instructionLine.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+			{
+				tags.AddDistinct(tag);
+			}
+			return string.Empty;
+		}
+
+		private static string EvaluateCasedItem(Match match, string caseDefault, string case1, string case2)
+		{
+			int number;
+			if (!TryParseNumber(match, out number))
+			{
+				Log.Warning(string.Format("{0} doesn't have a number", match.Value));
+				return match.Value;
+			}
+
+			return match.Value.Replace(caseDefault, GetCasedItem(number, caseDefault, case1, case2));
+		}
+
+		private static bool TryParseNumber(Match match, out int number)
+		{
+			number = int.MinValue;
+
+			if (match.Groups.Count <= 1)
+				return false;
+
+			string intStr = match.Groups[1].Value;
+			return int.TryParse(intStr, out number);
+		}
+
+		private static string GetCasedItem(int number, string caseDefault, string case1, string case2)
+		{
+			switch (GetNumberCase(number))
+			{
+				case 1:
+					return case1;
+				case 2:
+					return case2;
+				default:
+					return caseDefault;
+			}
+		}
+
+		private static int GetNumberCase(int number)
+		{
+			int firstPos = number % 10;
+			int secondPos = number / 10 % 10;
+
+			if (secondPos == 1)
+			{
+				return 0;
+			}
+
+			switch (firstPos)
+			{
+				case 1:
+					return 1;
+				case 2:
+				case 3:
+				case 4:
+					return 2;
+				default:
+					return 0;
+			}
+		}
+
+		private static string ProcessDate(string str)
+		{
+			return str
+				.Replace("Мартомай", "Мартомая")
+				.Replace("Июгуст", "Июгуста")
+				.Replace("Сентоноябрь", "Сентоноября")
+				.Replace("Декавраль", "Декавраля");
+		}
+
+		private static bool IsConsonant(char ch)
+		{
+			return "бвгджзклмнпрстфхцчшщБВГДЖЗКЛМНПРСТФХЦЧШЩ".IndexOf(ch) >= 0;
+		}
+	}
 
 }
