@@ -8,22 +8,23 @@ namespace LanguageWorkerRussian_Test
 {
 	public class LanguageWorker_Russian : LanguageWorker
 	{
-		private interface IInstruction
+		private interface IResolver
 		{
-			string Execute(string arguments);
+			string Resolve(string arguments);
 		}
 
-		private class ReplaceInstruction : IInstruction
+		private class ReplaceResolver : IResolver
 		{
 			// ^Replace "{0}": "Мартомай"-"Мартомая", "Июгуст"-"Июгуста", "Сентоноябрь"-"Сентоноября", "Декавраль"-"Декавраля"^
-			private static readonly Regex _replacementArgumentsLineRegex = new Regex("^\"(?<input>[^\"]*?)\":\\s*(\"(?<old>[^\"]*?)\"-\"(?<new>[^\"]*?)\")(,\\s*\"(?<old>[^\"]*?)\"-\"(?<new>[^\"]*?)\")*$", RegexOptions.Compiled);
+			private static readonly Regex _replacementArgumentsLineRegex = new Regex("^'(?<input>[^']*?)':\\s*('(?<old>[^']*?)'-'(?<new>[^']*?)')(,\\s*'(?<old>[^']*?)'-'(?<new>[^']*?)')*$", RegexOptions.Compiled);
 
-			public string Execute(string argumentsLine)
+			public string Resolve(string argumentsLine)
 			{
 				Match match = _replacementArgumentsLineRegex.Match(argumentsLine);
 				if (!match.Success)
 				{
-					Log.Error(string.Format("Syntax error in LW arguments line: \"{0}\"", argumentsLine));
+					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
+					//Log.Error(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
 					return string.Empty;
 				}
 
@@ -32,13 +33,14 @@ namespace LanguageWorkerRussian_Test
 				Group oldGroup = match.Groups["old"];
 				Group newGroup = match.Groups["new"];
 
-				if(oldGroup.Captures.Count != newGroup.Captures.Count)
+				if (oldGroup.Captures.Count != newGroup.Captures.Count)
 				{
-					Log.Error(string.Format("Syntax error in LW arguments line: \"{0}\"", argumentsLine));
+					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
+					//Log.Error(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
 					return input;
 				}
 
-				for(int i = 0; i < oldGroup.Captures.Count; ++i)
+				for (int i = 0; i < oldGroup.Captures.Count; ++i)
 				{
 					input = input.Replace(oldGroup.Captures[i].Value, newGroup.Captures[i].Value);
 				}
@@ -47,40 +49,66 @@ namespace LanguageWorkerRussian_Test
 			}
 		}
 
-		private class NumberCaseInstruction : IInstruction
+		private class NumberCaseResolver : IResolver
 		{
-			// ^Replace "{0}": "Мартомай"-"Мартомая", "Июгуст"-"Июгуста", "Сентоноябрь"-"Сентоноября", "Декавраль"-"Декавраля"^
-			private static readonly Regex _numberCaseArgumentsLineRegex = new Regex("^\"(?<number>(?<floor>[0-9]+)(.(?<frac>[0-9]+)))?\":\\s*1-\"(?<one>[^\"]*?)\"\\s*2-\"(?<several>[^\"]*?)\"\\s*X-\"(?<many>[^\"]*?)\"$", RegexOptions.Compiled);
+			// "3.14": 1-"прошёл # день" 2-"прошло # дня" X-"прошло # дней"
+			private static readonly Regex _numberCaseArgumentsLineRegex = new Regex("^'(?<number>(?<floor>[0-9]+)(.(?<frac>[0-9]+))?)':\\s*1-'(?<one>[^']*?)'\\s*2-'(?<several>[^']*?)'\\s*X-'(?<many>[^']*?)'$", RegexOptions.Compiled);
 
-			public string Execute(string argumentsLine)
+			public string Resolve(string argumentsLine)
 			{
 				Match match = _numberCaseArgumentsLineRegex.Match(argumentsLine);
 				if (!match.Success)
 				{
-					Log.Error(string.Format("Syntax error in LW arguments line: \"{0}\"", argumentsLine));
+					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
+					//Log.Error(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
 					return string.Empty;
 				}
 
-				bool hasTail = match.Groups["frac"].Success;
+				bool hasFracPart = match.Groups["frac"].Success;
 
+				string numberStr = match.Groups["number"].Value;
+				string floorStr = match.Groups["floor"].Value;
+				string formOne = match.Groups["one"].Value;
+				string formSeveral = match.Groups["several"].Value;
+				string formMany = match.Groups["many"].Value;
 
-				string number = match.Groups["number"].Value;
+				if (hasFracPart)
+				{
+					return formSeveral.Replace("#", numberStr);
+				}
 
-				Group oldGroup = match.Groups["old"];
-				Group newGroup = match.Groups["new"];
+				int floor = int.Parse(floorStr);
+				return GetFormForNumber(floor, formOne, formSeveral, formMany).Replace("#", numberStr);
+			}
 
-				throw new NotImplementedException();
+			private static string GetFormForNumber(int number, string formOne, string formSeveral, string formMany)
+			{
+				int firstPos = number % 10;
+				int secondPos = number / 10 % 10;
+
+				if (secondPos == 1)
+				{
+					return formMany;
+				}
+
+				switch (firstPos)
+				{
+					case 1:
+						return formOne;
+					case 2:
+					case 3:
+					case 4:
+						return formSeveral;
+					default:
+						return formMany;
+				}
 			}
 		}
 
-		private static readonly Regex _languageWorkerTagRegex = new Regex("\\^(.*?)\\^", RegexOptions.Compiled);
+		private static readonly ReplaceResolver replaceResolver = new ReplaceResolver();
+		private static readonly NumberCaseResolver numberCaseResolver = new NumberCaseResolver();
 
-		private static readonly Regex _numYearsRegex = new Regex("([0-9]+) лет", RegexOptions.Compiled);
-		private static readonly Regex _numQuadrumsRegex = new Regex("([0-9]+) кварталов", RegexOptions.Compiled);
-		private static readonly Regex _numDaysRegex = new Regex("([0-9]+) дней", RegexOptions.Compiled);
-		private static readonly Regex _numTimesRegex = new Regex("([0-9]+) раз", RegexOptions.Compiled);
-
-		private static readonly Regex _passedDaysRegex = new Regex("Прошло ([0-9]+)", RegexOptions.Compiled);
+		private static readonly Regex _languageWorkerResolverRegex = new Regex("\\^(?<keyword>[a-zA-Z]+)\\s+(?<arguments>.*?)\\^", RegexOptions.Compiled);
 
 		public override string PostProcessedKeyedTranslation(string translation)
 		{
@@ -94,44 +122,31 @@ namespace LanguageWorkerRussian_Test
 			return PostProcess(str);
 		}
 
-		private string PostProcess(string translation)
+		private static string PostProcess(string translation)
 		{
-			List<string> tags = new List<string>();
-			translation = _languageWorkerTagRegex.Replace(translation, (match) => EvaluateTags(match, tags));
+			return _languageWorkerResolverRegex.Replace(translation, EvaluateResolver);
+		}
 
-			foreach (string tag in tags)
+		private static string EvaluateResolver(Match match)
+		{
+			string keyword = match.Groups["keyword"].Value;
+			string arguments = match.Groups["arguments"].Value.Trim();
+			IResolver resolver = GetResolverByKeyword(keyword);
+
+			return resolver.Resolve(arguments);
+		}
+
+		private static IResolver GetResolverByKeyword(string keyword)
+		{
+			switch (keyword)
 			{
-				switch (tag)
-				{
-					case "date":
-						translation = translation
-							.Replace("Мартомай", "Мартомая")
-							.Replace("Июгуст", "Июгуста")
-							.Replace("Сентоноябрь", "Сентоноября")
-							.Replace("Декавраль", "Декавраля");
-						break;
-					case "XItems1":
-						translation = _numYearsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "лет", "год", "года"));
-						translation = _numQuadrumsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "кварталов", "квартал", "квартала"));
-						translation = _numDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "дней", "день", "дня"));
-						translation = _numTimesRegex.Replace(translation, (match) => EvaluateCasedItem(match, "раз", "раз", "раза"));
-						break;
-					case "XItems2":
-						translation = _numYearsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "лет", "года", "лет"));
-						translation = _numQuadrumsRegex.Replace(translation, (match) => EvaluateCasedItem(match, "кварталов", "квартала", "кварталов"));
-						translation = _numDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "дней", "дня", "дней"));
-						translation = _numTimesRegex.Replace(translation, (match) => EvaluateCasedItem(match, "раз", "раза", "раз"));
-						break;
-					case "passed":
-						translation = _passedDaysRegex.Replace(translation, (match) => EvaluateCasedItem(match, "Прошло", "Прошёл", "Прошло"));
-						break;
-					default:
-						Log.Warning(string.Format("Unexpected LanguageWorker_Russian tag: {0}", tag));
-						break;
-				}
+				case "Replace":
+					return replaceResolver;
+				case "Number":
+					return numberCaseResolver;
+				default:
+					return null;
 			}
-
-			return translation;
 		}
 
 		public override string Pluralize(string str, Gender gender, int count = -1)
@@ -248,102 +263,6 @@ namespace LanguageWorkerRussian_Test
 				}
 			}
 			return str;
-		}
-
-		private static string EvaluateTags(Match match, List<string> tags)
-		{
-			if (match.Groups.Count <= 1)
-				return string.Empty;
-
-			string tagLine = match.Groups[1].Value;
-
-			foreach (string tag in tagLine.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-			{
-				tags.AddDistinct(tag);
-			}
-			return string.Empty;
-		}
-
-		private static string EvaluateInstruction(Match match, List<string> tags)
-		{
-			if (match.Groups.Count <= 1)
-				return string.Empty;
-
-			string instructionLine = match.Groups[1].Value;
-
-			foreach (string tag in instructionLine.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
-			{
-				tags.AddDistinct(tag);
-			}
-			return string.Empty;
-		}
-
-		private static string EvaluateCasedItem(Match match, string caseDefault, string case1, string case2)
-		{
-			int number;
-			if (!TryParseNumber(match, out number))
-			{
-				Log.Warning(string.Format("{0} doesn't have a number", match.Value));
-				return match.Value;
-			}
-
-			return match.Value.Replace(caseDefault, GetCasedItem(number, caseDefault, case1, case2));
-		}
-
-		private static bool TryParseNumber(Match match, out int number)
-		{
-			number = int.MinValue;
-
-			if (match.Groups.Count <= 1)
-				return false;
-
-			string intStr = match.Groups[1].Value;
-			return int.TryParse(intStr, out number);
-		}
-
-		private static string GetCasedItem(int number, string caseDefault, string case1, string case2)
-		{
-			switch (GetNumberCase(number))
-			{
-				case 1:
-					return case1;
-				case 2:
-					return case2;
-				default:
-					return caseDefault;
-			}
-		}
-
-		private static int GetNumberCase(int number)
-		{
-			int firstPos = number % 10;
-			int secondPos = number / 10 % 10;
-
-			if (secondPos == 1)
-			{
-				return 0;
-			}
-
-			switch (firstPos)
-			{
-				case 1:
-					return 1;
-				case 2:
-				case 3:
-				case 4:
-					return 2;
-				default:
-					return 0;
-			}
-		}
-
-		private static string ProcessDate(string str)
-		{
-			return str
-				.Replace("Мартомай", "Мартомая")
-				.Replace("Июгуст", "Июгуста")
-				.Replace("Сентоноябрь", "Сентоноября")
-				.Replace("Декавраль", "Декавраля");
 		}
 
 		private static bool IsConsonant(char ch)
