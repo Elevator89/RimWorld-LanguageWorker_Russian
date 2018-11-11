@@ -12,13 +12,38 @@ namespace LanguageWorker_Russian_Test_Test
 		{
 			LanguageWorker_Russian lw = new LanguageWorker_Russian();
 
-			string template = "asdfasdf^Replace '{0}': 'Мартомай'-'Мартомая', 'Июгуст'-'Июгуста', 'Сентоноябрь'-'Сентоноября', 'Декавраль'-'Декавраля'^asdfasdf";
+			string template = "asd\n\nfasdf^Replace '{0}': 'Мартомай'-'Мартомая', 'Июгуст'-'Июгуста', 'Сентоноябрь'-'Сентоноября', 'Декавраль'-'Декавраля'^\n\nasdfasdf";
 
 			string original = string.Format(template, "Декавраль");
-
 			string actual = lw.PostProcessed(original);
 
-			Assert.AreEqual("asdfasdfДекавраляasdfasdf", actual);
+			Assert.AreEqual("asd\n\nfasdfДекавраля\n\nasdfasdf", actual);
+		}
+
+		[TestMethod]
+		public void ReturnsOrignalValueOnSyntaxError()
+		{
+			LanguageWorker_Russian lw = new LanguageWorker_Russian();
+
+			string template = "asd\n\nfasdf^Replace '{0}': 'Мартомай'-'Мартомая', 'Июгуст'-'Июгуста' 'Сентоноябрь'-'Сентоноября', 'Декавраль'-'Декавраля'^\n\nasdfasdf";
+
+			string original = string.Format(template, "Июгуст");
+			string actual = lw.PostProcessed(original);
+
+			Assert.AreEqual(original, actual);
+		}
+
+		[TestMethod]
+		public void SpacesInTheEndIsOk()
+		{
+			LanguageWorker_Russian lw = new LanguageWorker_Russian();
+
+			string template = "asd\n\nfasdf^Replace '{0}': 'Мартомай'-'Мартомая', 'Июгуст'-'Июгуста', 'Сентоноябрь'-'Сентоноября', 'Декавраль'-'Декавраля'    ^\n\nasdfasdf";
+
+			string original = string.Format(template, "Декавраль");
+			string actual = lw.PostProcessed(original);
+
+			Assert.AreEqual("asd\n\nfasdfДекавраля\n\nasdfasdf", actual);
 		}
 	}
 }

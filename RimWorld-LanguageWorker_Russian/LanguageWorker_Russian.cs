@@ -25,7 +25,7 @@ namespace LanguageWorkerRussian_Test
 				{
 					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
 					//Log.Error(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
-					return string.Empty;
+					//return argumentsLine;
 				}
 
 				string input = match.Groups["input"].Value;
@@ -37,7 +37,7 @@ namespace LanguageWorkerRussian_Test
 				{
 					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
 					//Log.Error(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
-					return input;
+					//return input;
 				}
 
 				for (int i = 0; i < oldGroup.Captures.Count; ++i)
@@ -60,8 +60,6 @@ namespace LanguageWorkerRussian_Test
 				if (!match.Success)
 				{
 					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
-					//Log.Error(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
-					return string.Empty;
 				}
 
 				bool hasFracPart = match.Groups["frac"].Success;
@@ -133,7 +131,15 @@ namespace LanguageWorkerRussian_Test
 			string arguments = match.Groups["arguments"].Value.Trim();
 			IResolver resolver = GetResolverByKeyword(keyword);
 
-			return resolver.Resolve(arguments);
+			try
+			{
+				return resolver.Resolve(arguments);
+			}
+			catch (Exception ex)
+			{
+				// Logging
+				return match.Value;
+			}
 		}
 
 		private static IResolver GetResolverByKeyword(string keyword)
