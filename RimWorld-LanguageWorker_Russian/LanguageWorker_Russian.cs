@@ -10,39 +10,46 @@ namespace LanguageWorkerRussian_Test
 	{
 		private interface IResolver
 		{
-			string Resolve(string arguments);
+			string Resolve(string[] arguments);
 		}
 
 		private class ReplaceResolver : IResolver
 		{
-			// ^Replace "{0}": "Мартомай"-"Мартомая", "Июгуст"-"Июгуста", "Сентоноябрь"-"Сентоноября", "Декавраль"-"Декавраля"^
-			private static readonly Regex _replacementArgumentsLineRegex = new Regex("^'(?<input>[^']*?)':\\s*('(?<old>[^']*?)'-'(?<new>[^']*?)')(,\\s*'(?<old>[^']*?)'-'(?<new>[^']*?)')*$", RegexOptions.Compiled);
+			// ^Replace('{0}', 'Мартомай'-'Мартомая', 'Июгуст'-'Июгуста', 'Сентоноябрь'-'Сентоноября', 'Декавраль'-'Декавраля')^
+			private static readonly Regex _argumentRegex = new Regex(@"'(?<old>[^']*?)'-'(?<new>[^']*?)'", RegexOptions.Compiled);
 
-			public string Resolve(string argumentsLine)
+			public string Resolve(string[] arguments)
 			{
-				Match match = _replacementArgumentsLineRegex.Match(argumentsLine);
-				if (!match.Success)
+				if(arguments.Length == 0)
 				{
-					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
-					//Log.Error(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
-					//return argumentsLine;
+					throw new ApplicationException("No args found for ReplaceResolver");
 				}
 
-				string input = match.Groups["input"].Value;
+				string input = arguments[0];
 
-				Group oldGroup = match.Groups["old"];
-				Group newGroup = match.Groups["new"];
-
-				if (oldGroup.Captures.Count != newGroup.Captures.Count)
+				if (arguments.Length == 1)
 				{
-					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
-					//Log.Error(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
-					//return input;
+					return input;
 				}
 
-				for (int i = 0; i < oldGroup.Captures.Count; ++i)
+				for (int i = 1; i < arguments.Length; ++i)
 				{
-					input = input.Replace(oldGroup.Captures[i].Value, newGroup.Captures[i].Value);
+					string argument = arguments[i];
+
+					Match match = _argumentRegex.Match(argument);
+					if (!match.Success)
+					{
+						throw new ApplicationException(string.Format("Syntax error in ReplaceResolver argument: \"{0}\"", argument));
+					}
+
+					string oldValue = match.Groups["old"].Value;
+					string newValue = match.Groups["new"].Value;
+
+					if(oldValue == input)
+					{
+						return newValue;
+					}
+					//Log.Message(string.Format("input: {0}, old: {1}, new: {2}", input, oldGroup.Captures[i].Value, newGroup.Captures[i].Value));
 				}
 
 				return input;
@@ -51,24 +58,30 @@ namespace LanguageWorkerRussian_Test
 
 		private class NumberCaseResolver : IResolver
 		{
-			// "3.14": 1-"прошёл # день" 2-"прошло # дня" X-"прошло # дней"
-			private static readonly Regex _numberCaseArgumentsLineRegex = new Regex("^'(?<number>(?<floor>[0-9]+)(.(?<frac>[0-9]+))?)':\\s*1-'(?<one>[^']*?)'\\s*2-'(?<several>[^']*?)'\\s*X-'(?<many>[^']*?)'$", RegexOptions.Compiled);
+			// '3.14': 1-'прошёл # день', 2-'прошло # дня', X-'прошло # дней'
+			private static readonly Regex _numberRegex = new Regex(@"(?<floor>[0-9]+)(\.(?<frac>[0-9]+))?", RegexOptions.Compiled);
 
-			public string Resolve(string argumentsLine)
+			public string Resolve(string[] arguments)
 			{
-				Match match = _numberCaseArgumentsLineRegex.Match(argumentsLine);
-				if (!match.Success)
+				if (arguments.Length != 4)
 				{
-					throw new ApplicationException(string.Format("Syntax error in LW resolver arguments: \"{0}\"", argumentsLine));
+					throw new ApplicationException("Incorrect number of arguments found for ReplaceResolver");
 				}
 
-				bool hasFracPart = match.Groups["frac"].Success;
+				string numberStr = arguments[0];
+				Match numberMatch = _numberRegex.Match(numberStr);
+				if (!numberMatch.Success)
+				{
+					throw new ApplicationException(string.Format("Syntax error in NumberCaseResolver argument: \"{0}\"", numberStr));
+				}
 
-				string numberStr = match.Groups["number"].Value;
-				string floorStr = match.Groups["floor"].Value;
-				string formOne = match.Groups["one"].Value;
-				string formSeveral = match.Groups["several"].Value;
-				string formMany = match.Groups["many"].Value;
+				bool hasFracPart = numberMatch.Groups["frac"].Success;
+
+				string floorStr = numberMatch.Groups["floor"].Value;
+
+				string formOne = arguments[1].Trim('\'');
+				string formSeveral = arguments[2].Trim('\'');
+				string formMany = arguments[3].Trim('\'');
 
 				if (hasFracPart)
 				{
@@ -106,7 +119,7 @@ namespace LanguageWorkerRussian_Test
 		private static readonly ReplaceResolver replaceResolver = new ReplaceResolver();
 		private static readonly NumberCaseResolver numberCaseResolver = new NumberCaseResolver();
 
-		private static readonly Regex _languageWorkerResolverRegex = new Regex("\\^(?<keyword>[a-zA-Z]+)\\s+(?<arguments>.*?)\\^", RegexOptions.Compiled);
+		private static readonly Regex _languageWorkerResolverRegex = new Regex(@"\^(?<resolverName>\w+)\(\s*(?<argument>[^|]+?)\s*(\|\s*(?<argument>[^|]+?)\s*)*\)\^", RegexOptions.Compiled);
 
 		public override string PostProcessedKeyedTranslation(string translation)
 		{
@@ -127,17 +140,25 @@ namespace LanguageWorkerRussian_Test
 
 		private static string EvaluateResolver(Match match)
 		{
-			string keyword = match.Groups["keyword"].Value;
-			string arguments = match.Groups["arguments"].Value.Trim();
+			string keyword = match.Groups["resolverName"].Value;
+
+			Group argumentsGroup = match.Groups["argument"];
+
+			string[] arguments = new string[argumentsGroup.Captures.Count];
+			for(int i = 0; i < argumentsGroup.Captures.Count; ++i)
+			{
+				arguments[i] = argumentsGroup.Captures[i].Value.Trim();
+			}
+
 			IResolver resolver = GetResolverByKeyword(keyword);
 
 			try
 			{
 				return resolver.Resolve(arguments);
 			}
-			catch (Exception ex)
+			catch
 			{
-				// Logging
+				//Log.Error(string.Format("Error happened while resolving LW construction: \"{0}\"", match.Value));
 				return match.Value;
 			}
 		}
