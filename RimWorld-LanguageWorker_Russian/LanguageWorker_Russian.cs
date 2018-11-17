@@ -22,7 +22,7 @@ namespace LanguageWorkerRussian_Test
 			{
 				if(arguments.Length == 0)
 				{
-					throw new ApplicationException("No args found for ReplaceResolver");
+					return null;
 				}
 
 				string input = arguments[0];
@@ -39,7 +39,7 @@ namespace LanguageWorkerRussian_Test
 					Match match = _argumentRegex.Match(argument);
 					if (!match.Success)
 					{
-						throw new ApplicationException(string.Format("Syntax error in ReplaceResolver argument: \"{0}\"", argument));
+						return null;
 					}
 
 					string oldValue = match.Groups["old"].Value;
@@ -65,14 +65,14 @@ namespace LanguageWorkerRussian_Test
 			{
 				if (arguments.Length != 4)
 				{
-					throw new ApplicationException("Incorrect number of arguments found for ReplaceResolver");
+					return null;
 				}
 
 				string numberStr = arguments[0];
 				Match numberMatch = _numberRegex.Match(numberStr);
 				if (!numberMatch.Success)
 				{
-					throw new ApplicationException(string.Format("Syntax error in NumberCaseResolver argument: \"{0}\"", numberStr));
+					return null;
 				}
 
 				bool hasFracPart = numberMatch.Groups["frac"].Success;
@@ -152,15 +152,14 @@ namespace LanguageWorkerRussian_Test
 
 			IResolver resolver = GetResolverByKeyword(keyword);
 
-			try
+			string result = resolver.Resolve(arguments);
+			if(result == null)
 			{
-				return resolver.Resolve(arguments);
-			}
-			catch
-			{
-				//Log.Error(string.Format("Error happened while resolving LW construction: \"{0}\"", match.Value));
+				Log.Error(string.Format("Error happened while resolving LW instruction: \"{0}\"", match.Value));
 				return match.Value;
 			}
+
+			return result;
 		}
 
 		private static IResolver GetResolverByKeyword(string keyword)
