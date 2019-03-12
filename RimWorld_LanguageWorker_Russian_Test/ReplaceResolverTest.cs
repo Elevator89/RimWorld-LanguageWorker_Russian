@@ -1,8 +1,7 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using LanguageWorkerRussian_Test;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using RimWorld_LanguageWorker_Russian;
 
-namespace LanguageWorker_Russian_Test_Test
+namespace RimWorld_LanguageWorker_Russian_Test
 {
 	[TestClass]
 	public class ReplaceResolverTest

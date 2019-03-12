@@ -1,12 +1,7 @@
-﻿using LanguageWorkerRussian_Test;
+﻿using RimWorld_LanguageWorker_Russian;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace LanguageWorker_Russian_Test_Test
+namespace RimWorld_LanguageWorker_Russian_Test
 {
 	[TestClass]
 	public class NumberCaseResolverTest

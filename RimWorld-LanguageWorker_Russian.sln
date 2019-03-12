@@ -1,13 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.168
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LanguageWorkerRussian_Test", "RimWorld-LanguageWorker_Russian\LanguageWorkerRussian_Test.csproj", "{A36BEEB2-7379-475B-B537-827E34571962}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorld_LanguageWorker_Russian", "RimWorld_LanguageWorker_Russian\RimWorld_LanguageWorker_Russian.csproj", "{A36BEEB2-7379-475B-B537-827E34571962}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LexerTestbed", "LexerTestbed\LexerTestbed.csproj", "{9AC8EC0E-4294-4DEA-A63A-AEDE0C8A1802}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LanguageWorker_Russian_Test_Test", "LanguageWorker_Russian_Test_Test\LanguageWorker_Russian_Test_Test.csproj", "{46BA0185-120F-4C36-A225-26126F17D726}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorld_LanguageWorker_Russian_Test", "RimWorld_LanguageWorker_Russian_Test\RimWorld_LanguageWorker_Russian_Test.csproj", "{46BA0185-120F-4C36-A225-26126F17D726}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,10 +17,6 @@ Global
 		{A36BEEB2-7379-475B-B537-827E34571962}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A36BEEB2-7379-475B-B537-827E34571962}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A36BEEB2-7379-475B-B537-827E34571962}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9AC8EC0E-4294-4DEA-A63A-AEDE0C8A1802}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9AC8EC0E-4294-4DEA-A63A-AEDE0C8A1802}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9AC8EC0E-4294-4DEA-A63A-AEDE0C8A1802}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9AC8EC0E-4294-4DEA-A63A-AEDE0C8A1802}.Release|Any CPU.Build.0 = Release|Any CPU
 		{46BA0185-120F-4C36-A225-26126F17D726}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{46BA0185-120F-4C36-A225-26126F17D726}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{46BA0185-120F-4C36-A225-26126F17D726}.Release|Any CPU.ActiveCfg = Release|Any CPU

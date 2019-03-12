@@ -6,8 +6,8 @@
     <ProjectGuid>{46BA0185-120F-4C36-A225-26126F17D726}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>LanguageWorker_Russian_Test_Test</RootNamespace>
-    <AssemblyName>LanguageWorker_Russian_Test_Test</AssemblyName>
+    <RootNamespace>RimWorld_LanguageWorker_Russian_Test</RootNamespace>
+    <AssemblyName>RimWorld_LanguageWorker_Russian_Test</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{3AC096D0-A1C2-E12C-1390-A8335801FDAB};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
@@ -36,11 +36,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>E:\Steam\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\..\..\..\Games\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine">
-      <HintPath>E:\Steam\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\Games\SteamLibrary\steamapps\common\RimWorld\RimWorldWin64_Data\Managed\UnityEngine.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <Choose>
@@ -61,9 +63,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\RimWorld-LanguageWorker_Russian\LanguageWorkerRussian_Test.csproj">
+    <ProjectReference Include="..\RimWorld_LanguageWorker_Russian\RimWorld_LanguageWorker_Russian.csproj">
       <Project>{a36beeb2-7379-475b-b537-827e34571962}</Project>
-      <Name>LanguageWorkerRussian_Test</Name>
+      <Name>RimWorld_LanguageWorker_Russian</Name>
     </ProjectReference>
   </ItemGroup>
   <Choose>

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Verse;
 
-namespace LanguageWorkerRussian_Test
+namespace RimWorld_LanguageWorker_Russian
 {
 	public class LanguageWorker_Russian : LanguageWorker
 	{
