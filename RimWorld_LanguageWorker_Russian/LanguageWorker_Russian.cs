@@ -49,7 +49,6 @@ namespace RimWorld_LanguageWorker_Russian
 					{
 						return newValue;
 					}
-					//Log.Message(string.Format("input: {0}, old: {1}, new: {2}", input, oldGroup.Captures[i].Value, newGroup.Captures[i].Value));
 				}
 
 				return input;

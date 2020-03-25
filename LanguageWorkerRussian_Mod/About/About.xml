@@ -1,7 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
 	<name>LanguageWorkerRussian_Test</name>
+	<packageId>Elevator.LanguageWorkerRussian.Test</packageId>
 	<author>Elevator</author>
-	<targetVersion>1.0.2059</targetVersion>
+	<supportedVersions>
+		<li>1.0</li>
+		<li>1.1</li>
+	</supportedVersions>
 	<description>LanguageWorkerRussian_Test</description>
 </ModMetaData>
