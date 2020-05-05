@@ -1,6 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using RimWorld.IO;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text.RegularExpressions;
 using Verse;
 
@@ -13,6 +14,146 @@ namespace RimWorld_LanguageWorker_Russian
 			string Resolve(string[] arguments);
 		}
 
+		public enum Case
+		{
+			Nominative = 0,
+			Genitive = 1,
+			Dative = 2,
+			Accusative = 3,
+			Instrumental = 4,
+			Prepositional = 5
+		}
+
+		private class CasedWord
+		{
+			private string[] _cases = new string[6];
+
+			public CasedWord(string nominative, string genitive, string dative, string accusative, string instrumental, string prepositional)
+			{
+				_cases[(int)Case.Nominative] = nominative;
+				_cases[(int)Case.Genitive] = genitive;
+				_cases[(int)Case.Dative] = dative;
+				_cases[(int)Case.Accusative] = accusative;
+				_cases[(int)Case.Instrumental] = instrumental;
+				_cases[(int)Case.Prepositional] = prepositional;
+			}
+
+			public CasedWord(string[] forms)
+			{
+				for (int i = 0; i < forms.Length; ++i)
+					_cases[i] = forms[i];
+			}
+
+			public bool TryForCase(Case wordCase, out string casedWord)
+			{
+				return TryForCase((int)wordCase, out casedWord);
+			}
+
+			public bool TryForCase(int caseNum, out string casedWord)
+			{
+				casedWord = _cases[caseNum];
+				return !casedWord.NullOrEmpty();
+			}
+		}
+
+		private class CaseInfo
+		{
+			private Dictionary<string, CasedWord> _casedWords = new Dictionary<string, CasedWord>();
+
+			public void LoadFrom(Tuple<VirtualDirectory, ModContentPack, string> dir, LoadedLanguage lang)
+			{
+				VirtualDirectory directory = dir.Item1.GetDirectory("WordInfo").GetDirectory("Case");
+				TryLoadFromFile(directory.GetFile("Case.txt"), dir, lang);
+			}
+
+			private void TryLoadFromFile(VirtualFile file, Tuple<VirtualDirectory, ModContentPack, string> dir, LoadedLanguage lang)
+			{
+				IEnumerable<string> lines;
+				try
+				{
+					lines = GenText.LinesFromString(file.ReadAllText());
+				}
+				catch (DirectoryNotFoundException)
+				{
+					return;
+				}
+				catch (FileNotFoundException)
+				{
+					return;
+				}
+				if (!lang.TryRegisterFileIfNew(dir, file.FullPath))
+				{
+					return;
+				}
+
+				foreach (string line in lines)
+				{
+					if (line.NullOrEmpty())
+						continue;
+
+					string[] lineWords = line.Split(new string[] { "; " }, StringSplitOptions.RemoveEmptyEntries);
+
+					if (lineWords.Length < 2)
+						continue;
+
+					string word = lineWords[0];
+					if (word.NullOrEmpty())
+						continue;
+
+					_casedWords[word] = new CasedWord(lineWords);
+				}
+			}
+
+			public string ResolveCase(string str, int caseNum)
+			{
+				if (TryResolveCase(str, caseNum, out string casedWord))
+					return casedWord;
+
+				return str;
+			}
+
+			public bool TryResolveCase(string str, int caseNum, out string casedWord)
+			{
+				casedWord = str;
+
+				if (!_casedWords.TryGetValue(str, out CasedWord word))
+					return false;
+
+				if (!word.TryForCase(caseNum, out casedWord))
+					return false;
+
+				return true;
+			}
+		}
+
+		private class CaseResolver : IResolver
+		{
+			CaseInfo _caseInfo;
+
+			public CaseResolver(CaseInfo caseInfo)
+			{
+				_caseInfo = caseInfo;
+			}
+
+			public string Resolve(string[] arguments)
+			{
+				if (arguments.Length == 0)
+					return null;
+
+				string input = arguments[0];
+
+				if (arguments.Length == 1)
+					return input;
+
+				string caseNumStr = arguments[1];
+
+				if (!int.TryParse(caseNumStr, out int caseNum))
+					return input;
+
+				return _caseInfo.ResolveCase(input, caseNum);
+			}
+		}
+
 		private class ReplaceResolver : IResolver
 		{
 			// ^Replace('{0}', 'Мартомай'-'Мартомая', 'Июгуст'-'Июгуста', 'Сентоноябрь'-'Сентоноября', 'Декавраль'-'Декавраля')^
@@ -20,7 +161,7 @@ namespace RimWorld_LanguageWorker_Russian
 
 			public string Resolve(string[] arguments)
 			{
-				if(arguments.Length == 0)
+				if (arguments.Length == 0)
 				{
 					return null;
 				}
@@ -45,7 +186,7 @@ namespace RimWorld_LanguageWorker_Russian
 					string oldValue = match.Groups["old"].Value;
 					string newValue = match.Groups["new"].Value;
 
-					if(oldValue == input)
+					if (oldValue == input)
 					{
 						return newValue;
 					}
@@ -115,10 +256,23 @@ namespace RimWorld_LanguageWorker_Russian
 			}
 		}
 
+		private readonly CaseResolver _caseResolver;
 		private static readonly ReplaceResolver replaceResolver = new ReplaceResolver();
 		private static readonly NumberCaseResolver numberCaseResolver = new NumberCaseResolver();
 
 		private static readonly Regex _languageWorkerResolverRegex = new Regex(@"\^(?<resolverName>\w+)\(\s*(?<argument>[^|]+?)\s*(\|\s*(?<argument>[^|]+?)\s*)*\)\^", RegexOptions.Compiled);
+
+		private CaseInfo _caseInfo = new CaseInfo();
+
+		public LanguageWorker_Russian()
+		{
+			foreach (Tuple<VirtualDirectory, ModContentPack, string> localDirectory in LanguageDatabase.activeLanguage.AllDirectories)
+			{
+				_caseInfo.LoadFrom(localDirectory, LanguageDatabase.activeLanguage);
+			}
+
+			_caseResolver = new CaseResolver(_caseInfo);
+		}
 
 		public override string PostProcessedKeyedTranslation(string translation)
 		{
@@ -132,19 +286,19 @@ namespace RimWorld_LanguageWorker_Russian
 			return PostProcess(str);
 		}
 
-		private static string PostProcess(string translation)
+		private string PostProcess(string translation)
 		{
 			return _languageWorkerResolverRegex.Replace(translation, EvaluateResolver);
 		}
 
-		private static string EvaluateResolver(Match match)
+		private string EvaluateResolver(Match match)
 		{
 			string keyword = match.Groups["resolverName"].Value;
 
 			Group argumentsGroup = match.Groups["argument"];
 
 			string[] arguments = new string[argumentsGroup.Captures.Count];
-			for(int i = 0; i < argumentsGroup.Captures.Count; ++i)
+			for (int i = 0; i < argumentsGroup.Captures.Count; ++i)
 			{
 				arguments[i] = argumentsGroup.Captures[i].Value.Trim();
 			}
@@ -152,7 +306,7 @@ namespace RimWorld_LanguageWorker_Russian
 			IResolver resolver = GetResolverByKeyword(keyword);
 
 			string result = resolver.Resolve(arguments);
-			if(result == null)
+			if (result == null)
 			{
 				Log.Error(string.Format("Error happened while resolving LW instruction: \"{0}\"", match.Value));
 				return match.Value;
@@ -161,10 +315,12 @@ namespace RimWorld_LanguageWorker_Russian
 			return result;
 		}
 
-		private static IResolver GetResolverByKeyword(string keyword)
+		private IResolver GetResolverByKeyword(string keyword)
 		{
 			switch (keyword)
 			{
+				case "Case":
+					return _caseResolver;
 				case "Replace":
 					return replaceResolver;
 				case "Number":
