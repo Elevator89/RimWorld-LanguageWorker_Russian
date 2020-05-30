@@ -14,48 +14,6 @@ namespace RimWorld_LanguageWorker_Russian
 			string Resolve(string[] arguments);
 		}
 
-		public enum Case
-		{
-			Nominative = 0,
-			Genitive = 1,
-			Dative = 2,
-			Accusative = 3,
-			Instrumental = 4,
-			Prepositional = 5
-		}
-
-		private class CasedWord
-		{
-			private string[] _cases = new string[6];
-
-			public CasedWord(string nominative, string genitive, string dative, string accusative, string instrumental, string prepositional)
-			{
-				_cases[(int)Case.Nominative] = nominative;
-				_cases[(int)Case.Genitive] = genitive;
-				_cases[(int)Case.Dative] = dative;
-				_cases[(int)Case.Accusative] = accusative;
-				_cases[(int)Case.Instrumental] = instrumental;
-				_cases[(int)Case.Prepositional] = prepositional;
-			}
-
-			public CasedWord(string[] forms)
-			{
-				for (int i = 0; i < forms.Length; ++i)
-					_cases[i] = forms[i];
-			}
-
-			public bool TryForCase(Case wordCase, out string casedWord)
-			{
-				return TryForCase((int)wordCase, out casedWord);
-			}
-
-			public bool TryForCase(int caseNum, out string casedWord)
-			{
-				casedWord = _cases[caseNum];
-				return !casedWord.NullOrEmpty();
-			}
-		}
-
 		private class PluralInfo
 		{
 			private Dictionary<string, string> _pluralWords = new Dictionary<string, string>();
@@ -85,6 +43,7 @@ namespace RimWorld_LanguageWorker_Russian
 				if (TryGetPlural(str, out string pluralWord))
 					return pluralWord;
 
+				Log.Warning($"LW: Plural form for \"{str}\" not found");
 				return str;
 			}
 			public bool TryGetPlural(string str, out string pluralWord)
@@ -95,7 +54,7 @@ namespace RimWorld_LanguageWorker_Russian
 
 		private class CaseInfo
 		{
-			private Dictionary<string, CasedWord> _casedWords = new Dictionary<string, CasedWord>();
+			private Dictionary<string, string[]> _casedWords = new Dictionary<string, string[]>();
 
 			public void ReadFromLines(IEnumerable<string> lines)
 			{
@@ -104,16 +63,16 @@ namespace RimWorld_LanguageWorker_Russian
 					if (line.NullOrEmpty())
 						continue;
 
-					string[] lineWords = line.Split(new string[] { "; " }, StringSplitOptions.RemoveEmptyEntries);
+					string[] cases = line.Split(new string[] { "; " }, StringSplitOptions.RemoveEmptyEntries);
 
-					if (lineWords.Length < 2)
+					if (cases.Length < 2)
 						continue;
 
-					string word = lineWords[0];
+					string word = cases[0];
 					if (word.NullOrEmpty())
 						continue;
 
-					_casedWords[word] = new CasedWord(lineWords);
+					_casedWords[word] = cases;
 				}
 			}
 
@@ -122,6 +81,7 @@ namespace RimWorld_LanguageWorker_Russian
 				if (TryResolveCase(str, caseNum, out string casedWord))
 					return casedWord;
 
+				Log.Warning($"LW: Case form {caseNum} for \"{str}\" not found");
 				return str;
 			}
 
@@ -129,12 +89,13 @@ namespace RimWorld_LanguageWorker_Russian
 			{
 				casedWord = str;
 
-				if (!_casedWords.TryGetValue(str, out CasedWord word))
+				if (!_casedWords.TryGetValue(str, out string[] cases))
 					return false;
 
-				if (!word.TryForCase(caseNum, out casedWord))
+				if (caseNum >= cases.Length)
 					return false;
 
+				casedWord = cases[caseNum];
 				return true;
 			}
 		}
@@ -153,17 +114,26 @@ namespace RimWorld_LanguageWorker_Russian
 			public string Resolve(string[] arguments)
 			{
 				if (arguments.Length == 0)
+				{
+					Log.Error($"LW CaseResolver: Argument list is empty");
 					return null;
+				}
 
 				string input = arguments[0];
 
 				if (arguments.Length == 1)
+				{
+					Log.Error($"LW CaseResolver: No case number specified for word \"{input}\"");
 					return input;
+				}
 
 				string caseNumStr = arguments[1];
 
 				if (!int.TryParse(caseNumStr, out int caseNum))
+				{
+					Log.Error($"LW CaseResolver: Cannot parse case number \"{caseNumStr}\" for word \"{input}\"");
 					return input;
+				}
 
 				return _cleanEntryRegex.Replace(input, match => _caseInfo.ResolveCase(match.Value, caseNum));
 			}
@@ -178,6 +148,7 @@ namespace RimWorld_LanguageWorker_Russian
 			{
 				if (arguments.Length == 0)
 				{
+					Log.Error($"LW ReplaceResolver: Argument list is empty");
 					return null;
 				}
 
@@ -185,6 +156,7 @@ namespace RimWorld_LanguageWorker_Russian
 
 				if (arguments.Length == 1)
 				{
+					Log.Warning($"LW ReplaceResolver: No replace insturctions for input \"{input}\"");
 					return input;
 				}
 
@@ -195,6 +167,7 @@ namespace RimWorld_LanguageWorker_Russian
 					Match match = _argumentRegex.Match(argument);
 					if (!match.Success)
 					{
+						Log.Error($"LW ReplaceResolver: Wrong format for replace instruction: \"{argument}\"");
 						return null;
 					}
 
@@ -202,11 +175,10 @@ namespace RimWorld_LanguageWorker_Russian
 					string newValue = match.Groups["new"].Value;
 
 					if (oldValue == input)
-					{
 						return newValue;
-					}
 				}
 
+				Log.Warning($"LW ReplaceResolver: No replacement found for \"{input}\"");
 				return input;
 			}
 		}
@@ -220,6 +192,7 @@ namespace RimWorld_LanguageWorker_Russian
 			{
 				if (arguments.Length != 4)
 				{
+					Log.Error($"LW NumberCaseResolver: Wrong number of arguments: {arguments.Length} instead of 4");
 					return null;
 				}
 
@@ -227,6 +200,7 @@ namespace RimWorld_LanguageWorker_Russian
 				Match numberMatch = _numberRegex.Match(numberStr);
 				if (!numberMatch.Success)
 				{
+					Log.Error($"LW NumberCaseResolver: Wrong number format \"{numberStr}\"");
 					return null;
 				}
 
@@ -271,25 +245,36 @@ namespace RimWorld_LanguageWorker_Russian
 			}
 		}
 
+		private const string CaseFileName = "Case.txt";
+		private const string PluralFileName = "Plural.txt";
+
 		private readonly CaseResolver _caseResolver;
 		private static readonly ReplaceResolver replaceResolver = new ReplaceResolver();
 		private static readonly NumberCaseResolver numberCaseResolver = new NumberCaseResolver();
 
 		private static readonly Regex _languageWorkerResolverRegex = new Regex(@"\^(?<resolverName>\w+)\(\s*(?<argument>[^|]+?)\s*(\|\s*(?<argument>[^|]+?)\s*)*\)\^", RegexOptions.Compiled);
 
-		private CaseInfo _caseInfo = new CaseInfo();
-		private PluralInfo _pluralInfo = new PluralInfo();
+		private readonly CaseInfo _caseInfo = new CaseInfo();
+		private readonly PluralInfo _pluralInfo = new PluralInfo();
 
 		public LanguageWorker_Russian()
 		{
-			foreach (Tuple<VirtualDirectory, ModContentPack, string> localDirectory in LanguageDatabase.activeLanguage.AllDirectories)
+			LoadedLanguage language = LanguageDatabase.activeLanguage;
+
+			foreach (Tuple<VirtualDirectory, ModContentPack, string> localDirectory in language.AllDirectories)
 			{
 				VirtualDirectory wordInfoDir = localDirectory.Item1.GetDirectory("WordInfo");
-				if (TryLoadLinesFromFile(wordInfoDir.GetFile("Case.txt"), localDirectory, LanguageDatabase.activeLanguage, out IEnumerable<string> caseLines))
+				if (TryLoadLinesFromFile(wordInfoDir.GetFile(CaseFileName), localDirectory, language, out IEnumerable<string> caseLines))
+				{
 					_caseInfo.ReadFromLines(caseLines);
+					Log.Message($"LW: Case dictionary loaded from file \"{wordInfoDir.FullPath}/{CaseFileName}\"");
+				}
 
-				if (TryLoadLinesFromFile(wordInfoDir.GetFile("Plural.txt"), localDirectory, LanguageDatabase.activeLanguage, out IEnumerable<string> pluralLines))
+				if (TryLoadLinesFromFile(wordInfoDir.GetFile(PluralFileName), localDirectory, language, out IEnumerable<string> pluralLines))
+				{
 					_pluralInfo.ReadFromLines(pluralLines);
+					Log.Message($"LW: Plural words loaded from file \"{wordInfoDir.FullPath}/{PluralFileName}\"");
+				}
 			}
 
 			_caseResolver = new CaseResolver(_caseInfo);
@@ -325,11 +310,16 @@ namespace RimWorld_LanguageWorker_Russian
 			}
 
 			IResolver resolver = GetResolverByKeyword(keyword);
+			if (resolver == null)
+			{
+				Log.Error($"LW: No resolver found for instruction \"{keyword}\"");
+				return match.Value;
+			}
 
 			string result = resolver.Resolve(arguments);
 			if (result == null)
 			{
-				Log.Error(string.Format("Error happened while resolving LW instruction: \"{0}\"", match.Value));
+				Log.Error($"LW: Error happened while resolving instruction: \"{match.Value}\"");
 				return match.Value;
 			}
 
@@ -354,7 +344,10 @@ namespace RimWorld_LanguageWorker_Russian
 		public override string Pluralize(string wordSingular, Gender gender, int count = -1)
 		{
 			if (!_pluralInfo.TryGetPlural(wordSingular, out string wordPlural))
+			{
+				Log.Error($"LW: No plural form found for \"{wordSingular}\"");
 				return wordSingular;
+			}
 
 			if (count == -1)
 				return wordPlural;
