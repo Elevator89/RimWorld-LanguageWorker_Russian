@@ -56,36 +56,49 @@ namespace RimWorld_LanguageWorker_Russian
 			}
 		}
 
+		private class PluralInfo
+		{
+			private Dictionary<string, string> _pluralWords = new Dictionary<string, string>();
+
+			public void ReadFromLines(IEnumerable<string> lines)
+			{
+				foreach (string line in lines)
+				{
+					if (line.NullOrEmpty())
+						continue;
+
+					string[] lineWords = line.Split(new string[] { "; " }, StringSplitOptions.RemoveEmptyEntries);
+
+					if (lineWords.Length < 2)
+						continue;
+
+					string word = lineWords[0];
+					if (word.NullOrEmpty())
+						continue;
+
+					_pluralWords[word] = lineWords[1];
+				}
+			}
+
+			public string GetPlural(string str)
+			{
+				if (TryGetPlural(str, out string pluralWord))
+					return pluralWord;
+
+				return str;
+			}
+			public bool TryGetPlural(string str, out string pluralWord)
+			{
+				return _pluralWords.TryGetValue(str, out pluralWord);
+			}
+		}
+
 		private class CaseInfo
 		{
 			private Dictionary<string, CasedWord> _casedWords = new Dictionary<string, CasedWord>();
 
-			public void LoadFrom(Tuple<VirtualDirectory, ModContentPack, string> dir, LoadedLanguage lang)
+			public void ReadFromLines(IEnumerable<string> lines)
 			{
-				VirtualDirectory directory = dir.Item1.GetDirectory("WordInfo").GetDirectory("Case");
-				TryLoadFromFile(directory.GetFile("Case.txt"), dir, lang);
-			}
-
-			private void TryLoadFromFile(VirtualFile file, Tuple<VirtualDirectory, ModContentPack, string> dir, LoadedLanguage lang)
-			{
-				IEnumerable<string> lines;
-				try
-				{
-					lines = GenText.LinesFromString(file.ReadAllText());
-				}
-				catch (DirectoryNotFoundException)
-				{
-					return;
-				}
-				catch (FileNotFoundException)
-				{
-					return;
-				}
-				if (!lang.TryRegisterFileIfNew(dir, file.FullPath))
-				{
-					return;
-				}
-
 				foreach (string line in lines)
 				{
 					if (line.NullOrEmpty())
@@ -128,7 +141,9 @@ namespace RimWorld_LanguageWorker_Russian
 
 		private class CaseResolver : IResolver
 		{
-			CaseInfo _caseInfo;
+			private static readonly Regex _cleanEntryRegex = new Regex(@"[\w\s]*\w", RegexOptions.Compiled);
+
+			private CaseInfo _caseInfo;
 
 			public CaseResolver(CaseInfo caseInfo)
 			{
@@ -150,7 +165,7 @@ namespace RimWorld_LanguageWorker_Russian
 				if (!int.TryParse(caseNumStr, out int caseNum))
 					return input;
 
-				return _caseInfo.ResolveCase(input, caseNum);
+				return _cleanEntryRegex.Replace(input, match => _caseInfo.ResolveCase(match.Value, caseNum));
 			}
 		}
 
@@ -232,7 +247,7 @@ namespace RimWorld_LanguageWorker_Russian
 				return GetFormForNumber(floor, formOne, formSeveral, formMany).Replace("#", numberStr);
 			}
 
-			private static string GetFormForNumber(int number, string formOne, string formSeveral, string formMany)
+			public static string GetFormForNumber(int number, string formOne, string formSeveral, string formMany)
 			{
 				int firstPos = number % 10;
 				int secondPos = number / 10 % 10;
@@ -263,12 +278,18 @@ namespace RimWorld_LanguageWorker_Russian
 		private static readonly Regex _languageWorkerResolverRegex = new Regex(@"\^(?<resolverName>\w+)\(\s*(?<argument>[^|]+?)\s*(\|\s*(?<argument>[^|]+?)\s*)*\)\^", RegexOptions.Compiled);
 
 		private CaseInfo _caseInfo = new CaseInfo();
+		private PluralInfo _pluralInfo = new PluralInfo();
 
 		public LanguageWorker_Russian()
 		{
 			foreach (Tuple<VirtualDirectory, ModContentPack, string> localDirectory in LanguageDatabase.activeLanguage.AllDirectories)
 			{
-				_caseInfo.LoadFrom(localDirectory, LanguageDatabase.activeLanguage);
+				VirtualDirectory wordInfoDir = localDirectory.Item1.GetDirectory("WordInfo");
+				if (TryLoadLinesFromFile(wordInfoDir.GetFile("Case.txt"), localDirectory, LanguageDatabase.activeLanguage, out IEnumerable<string> caseLines))
+					_caseInfo.ReadFromLines(caseLines);
+
+				if (TryLoadLinesFromFile(wordInfoDir.GetFile("Plural.txt"), localDirectory, LanguageDatabase.activeLanguage, out IEnumerable<string> pluralLines))
+					_pluralInfo.ReadFromLines(pluralLines);
 			}
 
 			_caseResolver = new CaseResolver(_caseInfo);
@@ -330,125 +351,40 @@ namespace RimWorld_LanguageWorker_Russian
 			}
 		}
 
-		public override string Pluralize(string str, Gender gender, int count = -1)
+		public override string Pluralize(string wordSingular, Gender gender, int count = -1)
 		{
-			if (str.NullOrEmpty())
-			{
-				return str;
-			}
-			char c = str[str.Length - 1];
-			char c2 = (str.Length < 2) ? '\0' : str[str.Length - 2];
-			if (gender != Gender.Male)
-			{
-				if (gender != Gender.Female)
-				{
-					if (gender == Gender.None)
-					{
-						if (c == 'o')
-						{
-							return str.Substring(0, str.Length - 1) + 'a';
-						}
-						if (c == 'O')
-						{
-							return str.Substring(0, str.Length - 1) + 'A';
-						}
-						if (c == 'e' || c == 'E')
-						{
-							char value = char.ToUpper(c2);
-							if ("ГКХЖЧШЩЦ".IndexOf(value) >= 0)
-							{
-								if (c == 'e')
-								{
-									return str.Substring(0, str.Length - 1) + 'a';
-								}
-								if (c == 'E')
-								{
-									return str.Substring(0, str.Length - 1) + 'A';
-								}
-							}
-							else
-							{
-								if (c == 'e')
-								{
-									return str.Substring(0, str.Length - 1) + 'я';
-								}
-								if (c == 'E')
-								{
-									return str.Substring(0, str.Length - 1) + 'Я';
-								}
-							}
-						}
-					}
-				}
-				else
-				{
-					if (c == 'я')
-					{
-						return str.Substring(0, str.Length - 1) + 'и';
-					}
-					if (c == 'ь')
-					{
-						return str.Substring(0, str.Length - 1) + 'и';
-					}
-					if (c == 'Я')
-					{
-						return str.Substring(0, str.Length - 1) + 'И';
-					}
-					if (c == 'Ь')
-					{
-						return str.Substring(0, str.Length - 1) + 'И';
-					}
-					if (c == 'a' || c == 'A')
-					{
-						char value2 = char.ToUpper(c2);
-						if ("ГКХЖЧШЩ".IndexOf(value2) >= 0)
-						{
-							if (c == 'a')
-							{
-								return str.Substring(0, str.Length - 1) + 'и';
-							}
-							return str.Substring(0, str.Length - 1) + 'И';
-						}
-						else
-						{
-							if (c == 'a')
-							{
-								return str.Substring(0, str.Length - 1) + 'ы';
-							}
-							return str.Substring(0, str.Length - 1) + 'Ы';
-						}
-					}
-				}
-			}
-			else
-			{
-				if (IsConsonant(c))
-				{
-					return str + 'ы';
-				}
-				if (c == 'й')
-				{
-					return str.Substring(0, str.Length - 1) + 'и';
-				}
-				if (c == 'ь')
-				{
-					return str.Substring(0, str.Length - 1) + 'и';
-				}
-				if (c == 'Й')
-				{
-					return str.Substring(0, str.Length - 1) + 'И';
-				}
-				if (c == 'Ь')
-				{
-					return str.Substring(0, str.Length - 1) + 'И';
-				}
-			}
-			return str;
+			if (!_pluralInfo.TryGetPlural(wordSingular, out string wordPlural))
+				return wordSingular;
+
+			if (count == -1)
+				return wordPlural;
+
+			string wordPluralSeveral = _caseInfo.ResolveCase(wordSingular, 2);
+			string wordPluralMany = _caseInfo.ResolveCase(wordPlural, 2);
+
+			return NumberCaseResolver.GetFormForNumber(count, wordSingular, wordPluralSeveral, wordPluralMany);
 		}
 
-		private static bool IsConsonant(char ch)
+		private static bool TryLoadLinesFromFile(VirtualFile file, Tuple<VirtualDirectory, ModContentPack, string> dir, LoadedLanguage lang, out IEnumerable<string> lines)
 		{
-			return "бвгджзклмнпрстфхцчшщБВГДЖЗКЛМНПРСТФХЦЧШЩ".IndexOf(ch) >= 0;
+			lines = null;
+			try
+			{
+				lines = GenText.LinesFromString(file.ReadAllText());
+
+				if (!lang.TryRegisterFileIfNew(dir, file.FullPath))
+					return false;
+
+				return true;
+			}
+			catch (DirectoryNotFoundException)
+			{
+				return false;
+			}
+			catch (FileNotFoundException)
+			{
+				return false;
+			}
 		}
 	}
 
