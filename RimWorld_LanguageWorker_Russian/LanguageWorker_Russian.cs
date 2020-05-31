@@ -102,8 +102,6 @@ namespace RimWorld_LanguageWorker_Russian
 
 		private class CaseResolver : IResolver
 		{
-			private static readonly Regex _cleanEntryRegex = new Regex(@"[\w\s]*\w", RegexOptions.Compiled);
-
 			private readonly CaseInfo _caseInfo;
 
 			public CaseResolver(CaseInfo caseInfo)
@@ -135,7 +133,24 @@ namespace RimWorld_LanguageWorker_Russian
 					return input;
 				}
 
-				return _cleanEntryRegex.Replace(input, match => _caseInfo.ResolveCase(match.Value, caseNum));
+				// need to process "булава из стали (нормально)". The replaced word must be "булава"
+				foreach (string variant in GetVariants(input))
+				{
+					if (_caseInfo.TryResolveCase(variant, caseNum, out string casedWord))
+						return input.Replace(variant, casedWord);
+				}
+
+				Log.Warning($"LW CaseResolver: No case \"{caseNumStr}\" found for entry \"{input}\"");
+				return input;
+			}
+
+			private IEnumerable<string> GetVariants(string input)
+			{
+				string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+				for (int variantLength = parts.Length; variantLength > 0; --variantLength)
+				{
+					yield return string.Join(" ", parts, 0, variantLength);
+				}
 			}
 		}
 
