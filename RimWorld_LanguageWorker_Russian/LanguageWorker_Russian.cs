@@ -16,7 +16,7 @@ namespace RimWorld_LanguageWorker_Russian
 
 		private class PluralInfo
 		{
-			private Dictionary<string, string> _pluralWords = new Dictionary<string, string>();
+			private readonly Dictionary<string, string> _pluralWords = new Dictionary<string, string>();
 
 			public void ReadFromLines(IEnumerable<string> lines)
 			{
@@ -54,7 +54,7 @@ namespace RimWorld_LanguageWorker_Russian
 
 		private class CaseInfo
 		{
-			private Dictionary<string, string[]> _casedWords = new Dictionary<string, string[]>();
+			private readonly Dictionary<string, string[]> _casedWords = new Dictionary<string, string[]>();
 
 			public void ReadFromLines(IEnumerable<string> lines)
 			{
@@ -104,7 +104,7 @@ namespace RimWorld_LanguageWorker_Russian
 		{
 			private static readonly Regex _cleanEntryRegex = new Regex(@"[\w\s]*\w", RegexOptions.Compiled);
 
-			private CaseInfo _caseInfo;
+			private readonly CaseInfo _caseInfo;
 
 			public CaseResolver(CaseInfo caseInfo)
 			{
@@ -123,7 +123,7 @@ namespace RimWorld_LanguageWorker_Russian
 
 				if (arguments.Length == 1)
 				{
-					Log.Error($"LW CaseResolver: No case number specified for word \"{input}\"");
+					Log.Error($"LW CaseResolver: No case number specified for entry \"{input}\"");
 					return input;
 				}
 
@@ -131,7 +131,7 @@ namespace RimWorld_LanguageWorker_Russian
 
 				if (!int.TryParse(caseNumStr, out int caseNum))
 				{
-					Log.Error($"LW CaseResolver: Cannot parse case number \"{caseNumStr}\" for word \"{input}\"");
+					Log.Error($"LW CaseResolver: Cannot parse case number \"{caseNumStr}\" for entry \"{input}\"");
 					return input;
 				}
 
@@ -345,7 +345,7 @@ namespace RimWorld_LanguageWorker_Russian
 		{
 			if (!_pluralInfo.TryGetPlural(wordSingular, out string wordPlural))
 			{
-				Log.Error($"LW: No plural form found for \"{wordSingular}\"");
+				Log.Warning($"LW: No plural form found for \"{wordSingular}\"");
 				return wordSingular;
 			}
 
