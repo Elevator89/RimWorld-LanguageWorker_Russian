@@ -46,8 +46,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CaseMap.cs" />
+    <Compile Include="Resolving\CaseMethod.cs" />
+    <Compile Include="Resolving\IMethod.cs" />
     <Compile Include="LanguageWorker_Russian.cs" />
+    <Compile Include="Resolving\NumberCaseMethod.cs" />
+    <Compile Include="PluralMap.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Resolving\ReplaceMethod.cs" />
+    <Compile Include="LanguageWorkerUtil.cs" />
+    <Compile Include="Resolving\Resolver.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
