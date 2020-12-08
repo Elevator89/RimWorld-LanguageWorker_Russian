@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.168
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30406.217
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorld_LanguageWorker_Russian", "RimWorld_LanguageWorker_Russian\RimWorld_LanguageWorker_Russian.csproj", "{A36BEEB2-7379-475B-B537-827E34571962}"
 EndProject
@@ -19,6 +19,8 @@ Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "RimWorldWin64", "E:\Steam\s
 		LaunchSQLEngine = No
 		AttachLaunchAction = No
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorld_BackstoryTitlesChecker", "RimWorld-BackstoryTitlesChecker\RimWorld_BackstoryTitlesChecker.csproj", "{9DDD518E-D190-4950-BED6-628A7FBDE777}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -48,6 +50,14 @@ Global
 		{3CA89E7D-A705-4E80-B606-2CD0361261D8}.Debug|x64.ActiveCfg = Release|x64
 		{3CA89E7D-A705-4E80-B606-2CD0361261D8}.Release|Any CPU.ActiveCfg = Release|x64
 		{3CA89E7D-A705-4E80-B606-2CD0361261D8}.Release|x64.ActiveCfg = Release|x64
+		{9DDD518E-D190-4950-BED6-628A7FBDE777}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9DDD518E-D190-4950-BED6-628A7FBDE777}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9DDD518E-D190-4950-BED6-628A7FBDE777}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9DDD518E-D190-4950-BED6-628A7FBDE777}.Debug|x64.Build.0 = Debug|Any CPU
+		{9DDD518E-D190-4950-BED6-628A7FBDE777}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9DDD518E-D190-4950-BED6-628A7FBDE777}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9DDD518E-D190-4950-BED6-628A7FBDE777}.Release|x64.ActiveCfg = Release|Any CPU
+		{9DDD518E-D190-4950-BED6-628A7FBDE777}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
