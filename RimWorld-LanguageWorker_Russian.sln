@@ -12,12 +12,13 @@ Project("{911E67C6-3D85-4FCE-B560-20A9C3E3FF48}") = "RimWorldWin64", "E:\Steam\s
 		PortSupplier = 00000000-0000-0000-0000-000000000000
 		Executable = E:\Steam\steamapps\common\RimWorld\RimWorldWin64.exe
 		RemoteMachine = ELEVATOR-PC
-		StartingDirectory = E:\Steam\steamapps\common\RimWorld
+		StartingDirectory = G:\Steam\steamapps\common\RimWorld
 		Environment = dnspy_unity_dbg2=--debugger-agent=transport=dt_socket,server=y,address=127.0.0.1:56000,suspend=y,no-hide-debugger	
 		LaunchingEngine = 00000000-0000-0000-0000-000000000000
 		UseLegacyDebugEngines = No
 		LaunchSQLEngine = No
 		AttachLaunchAction = No
+		IORedirection = Auto
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RimWorld_BackstoryTitlesChecker", "RimWorld-BackstoryTitlesChecker\RimWorld_BackstoryTitlesChecker.csproj", "{9DDD518E-D190-4950-BED6-628A7FBDE777}"

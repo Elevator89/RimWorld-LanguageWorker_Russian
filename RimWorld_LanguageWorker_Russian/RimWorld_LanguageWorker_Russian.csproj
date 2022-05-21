@@ -62,7 +62,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "..\..\LanguageWorkerRussian_Mod" "E:\Steam\steamapps\common\RimWorld\Data\LanguageWorkerRussian_Mod\" /y/s/h/e/k/f/c</PostBuildEvent>
+    <PostBuildEvent>xcopy "..\..\LanguageWorkerRussian_Mod" "G:\Steam\steamapps\common\RimWorld\Data\LanguageWorkerRussian_Mod\" /y/s/h/e/k/f/c</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
